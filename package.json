@@ -1,0 +1,13 @@
+{
+  "name": "trezo-templates",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "author": "thelastofinusa",
+  "scripts": {
+    "build": "pnpm -r build",
+    "link": "pnpm install",
+    "typecheck": "pnpm -r typecheck",
+    "install::all": "pnpm -r install"
+  }
+}

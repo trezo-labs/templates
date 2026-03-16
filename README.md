@@ -1,1 +1,1 @@
-# templates
+# Trezo Templates
