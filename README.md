@@ -6,4 +6,5 @@ Ready-to-use starter projects that help developers quickly bootstrap Web3 applic
 
 ### @trezo/evm
 
-- **Vite template with Trezo EVM integration and demo Todo dApp** – [View Template](https://github.com/trezo-labs/templates/tree/main/templates/evm/vite-app)
+- **Vite template with a demo Todo dApp** – [View Template](https://github.com/trezo-labs/templates/tree/main/templates/evm/vite-app)
+- **NextJs 16 template with a demo Todo dApp** – [View Template](https://github.com/trezo-labs/templates/tree/main/templates/evm/next-app)
