@@ -2,9 +2,10 @@ import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
+import { Loader } from "lucide-react"
 
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm whitespace-nowrap transition-all outline-none select-none squircle focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:font-medium dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
@@ -44,15 +45,32 @@ function Button({
   className,
   variant = "default",
   size = "default",
+  isLoading = false,
+  loadingText,
   ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+}: ButtonPrimitive.Props &
+  VariantProps<typeof buttonVariants> & {
+    isLoading?: boolean
+    loadingText?: string
+  }) {
   return (
     <ButtonPrimitive
       data-slot="button"
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
-    />
+      disabled={isLoading || props.disabled}
+    >
+      {isLoading ? (
+        <>
+          <Loader className="animate-spin" />{" "}
+          {loadingText && <span>{loadingText}</span>}
+        </>
+      ) : (
+        props.children
+      )}
+    </ButtonPrimitive>
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export { Button, buttonVariants }
