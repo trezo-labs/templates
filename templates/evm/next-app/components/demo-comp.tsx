@@ -1,6 +1,5 @@
 "use client"
 import { motion, AnimatePresence } from "framer-motion"
-import { formatAddress, throwError } from "@trezo/evm"
 import { useCallback, useEffect, useState } from "react"
 import { Check, Info, Loader, Pencil, Trash2, X } from "lucide-react"
 
@@ -31,7 +30,6 @@ export const DemoComponent = () => {
   const [newTask, setNewTask] = useState<string>("")
   const [editText, setEditText] = useState<string>("")
   const [maxContentLength, setMaxContentLength] = useState<number>(30)
-  // const [initialFetchDone, setInitialFetchDone] = useState<boolean>(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -43,11 +41,11 @@ export const DemoComponent = () => {
   })
 
   // ===== Derived loading states =====
-  const isAnyDeleting = Object.values(loading.delete).some(Boolean)
-  const isAnyUpdating = Object.values(loading.update).some(Boolean)
-  const isAnyToggling = Object.values(loading.toggle).some(Boolean)
-
-  const isBusy = loading.add || isAnyDeleting || isAnyUpdating || isAnyToggling
+  const isAnyLoading =
+    loading.add ||
+    Object.values(loading.toggle).some(Boolean) ||
+    Object.values(loading.update).some(Boolean) ||
+    Object.values(loading.delete).some(Boolean)
 
   // ===== Fetch helpers =====
   const fetchOtherFunctions = useCallback(async () => {
@@ -62,7 +60,9 @@ export const DemoComponent = () => {
   const fetchAllTasks = async () => {
     try {
       const result = await call.queryFn("fetchAllTasks", [])
-      if (result.error) throwError(result.rawError?.message)
+      if (result.error) {
+        throw new Error(result.error.message)
+      }
       setTasks(result.data as unknown as TaskType[])
     } catch (error) {
       console.error(error)
@@ -72,20 +72,22 @@ export const DemoComponent = () => {
   // ===== Actions =====
 
   const addTask = async () => {
-    if (!newTask.trim()) return
-    if (!wallet.account.isConnected) return
+    if (!newTask.trim() || !wallet.account.isConnected) return
 
     setLoading((prev) => ({ ...prev, add: true }))
+    setError(null)
 
     try {
       const result = await call.mutateFn("addTask", [newTask.trim()])
-
       if (result.error) {
+        console.error(result.error)
         throw new Error(result.error.message)
       }
+      if (result.data?.receipt?.status === 0)
+        throw new Error("Transaction failed")
       setNewTask("")
-      setError(null)
-    } catch (error: unknown) {
+    } catch (error) {
+      console.error(error)
       setError(error instanceof Error ? error.message : "Failed to add task")
     } finally {
       setLoading((prev) => ({ ...prev, add: false }))
@@ -94,25 +96,20 @@ export const DemoComponent = () => {
 
   const toggleTaskComplete = async (id: number) => {
     if (!wallet.account.isConnected) return
-    setLoading((prev) => ({
-      ...prev,
-      toggle: { ...prev.toggle, [id]: true },
-    }))
+    setLoading((prev) => ({ ...prev, toggle: { ...prev.toggle, [id]: true } }))
+    setError(null)
 
     try {
       const result = await call.mutateFn("toggleTaskComplete", [BigInt(id)])
-
       if (result.error) {
+        console.error(result.error)
         throw new Error(result.error.message)
       }
-
-      setError(null)
-    } catch (error: unknown) {
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Failed to toggle task completion"
-      )
+      if (result.data?.receipt?.status === 0)
+        throw new Error("Transaction failed")
+    } catch (error) {
+      console.error(error)
+      setError(error instanceof Error ? error.message : "Failed to toggle task")
     } finally {
       setLoading((prev) => ({
         ...prev,
@@ -122,28 +119,25 @@ export const DemoComponent = () => {
   }
 
   const updateTaskContent = async (id: number) => {
-    if (!editText.trim()) return
-    if (!wallet.account.isConnected) return
-
-    setLoading((prev) => ({
-      ...prev,
-      update: { ...prev.update, [id]: true },
-    }))
+    if (!editText.trim() || !wallet.account.isConnected) return
+    setLoading((prev) => ({ ...prev, update: { ...prev.update, [id]: true } }))
+    setError(null)
 
     try {
       const result = await call.mutateFn("updateTaskContent", [
         BigInt(id),
         editText.trim(),
       ])
-
       if (result.error) {
+        console.error(result.error)
         throw new Error(result.error.message)
       }
-
+      if (result.data?.receipt?.status === 0)
+        throw new Error("Transaction failed")
       setEditingId(null)
       setEditText("")
-      setError(null)
-    } catch (error: unknown) {
+    } catch (error) {
+      console.error(error)
       setError(error instanceof Error ? error.message : "Failed to update task")
     } finally {
       setLoading((prev) => ({
@@ -155,20 +149,19 @@ export const DemoComponent = () => {
 
   const removeTask = async (id: number) => {
     if (!wallet.account.isConnected) return
-    setLoading((prev) => ({
-      ...prev,
-      delete: { ...prev.delete, [id]: true },
-    }))
+    setLoading((prev) => ({ ...prev, delete: { ...prev.delete, [id]: true } }))
+    setError(null)
 
     try {
       const result = await call.mutateFn("removeTask", [BigInt(id)])
-
       if (result.error) {
+        console.error(result.error)
         throw new Error(result.error.message)
       }
-
-      setError(null)
-    } catch (error: unknown) {
+      if (result.data?.receipt?.status === 0)
+        throw new Error("Transaction failed")
+    } catch (error) {
+      console.error(error)
       setError(error instanceof Error ? error.message : "Failed to remove task")
     } finally {
       setLoading((prev) => ({
@@ -181,18 +174,18 @@ export const DemoComponent = () => {
   // ===== Effects =====
 
   useEffect(() => {
+    // Don't fetch if wallet is still reconnecting
+    if (wallet.account.isConnecting) return
+
     queueMicrotask(() => {
       fetchAllTasks()
       fetchOtherFunctions()
-      // setInitialFetchDone(true)
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [call, wallet.account.address])
+  }, [wallet.account.address, wallet.account.isConnecting])
 
   useEffect(() => {
-    // if (!initialFetchDone) return
-
-    const cleanup = call.listenMany({
+    const cleanup = call.listenFn({
       add: { eventName: "TaskAdded", listener: fetchAllTasks },
       update: { eventName: "TaskUpdated", listener: fetchAllTasks },
       remove: { eventName: "TaskRemoved", listener: fetchAllTasks },
@@ -201,16 +194,20 @@ export const DemoComponent = () => {
 
     return cleanup
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [wallet.account.address]) // 👈 stable primitive, never changes size
 
   // ===== UI =====
 
   return (
     <div className="space-y-2">
       <ConnectButton>
-        {({ isConnected, ensName, address, open }) => (
-          <Button onClick={() => open({ view: "Account" })}>
-            {isConnected ? (ensName ?? formatAddress(address)) : "Connect"}
+        {({ isConnected, truncatedAddress, open, isConnecting }) => (
+          <Button
+            onClick={() => open()}
+            isLoading={!isConnected ? isConnecting : false}
+            loadingText="Please wait..."
+          >
+            {isConnected ? truncatedAddress : "Connect"}
           </Button>
         )}
       </ConnectButton>
@@ -225,19 +222,20 @@ export const DemoComponent = () => {
           <div className="flex gap-2">
             <Input
               value={newTask}
-              disabled={!web3Provider.isAvailable || isBusy}
+              disabled={!web3Provider.isAvailable || isAnyLoading}
               onChange={(e) => setNewTask(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && addTask()}
+              onKeyDown={(e) => e.key === "Enter" && !isAnyLoading && addTask()}
               aria-invalid={newTask.length >= maxContentLength}
             />
 
             <Button
               onClick={addTask}
               isLoading={loading.add}
+              loadingText="Adding..."
               disabled={
                 !web3Provider.isAvailable ||
-                newTask.length >= maxContentLength ||
-                isAnyDeleting
+                isAnyLoading ||
+                newTask.length >= maxContentLength
               }
             >
               Add Task
@@ -254,15 +252,17 @@ export const DemoComponent = () => {
 
         {/* ===== Task List ===== */}
         {tasks.length > 0 && (
-          <ScrollArea className="max-h-[200px] overflow-y-auto">
+          <ScrollArea className="max-h-[350px] overflow-y-auto">
             <AnimatePresence initial={false}>
               <motion.div layout className="flex flex-col gap-2">
                 {tasks.map((task) => {
-                  const isDeleting = loading.delete[task.id]
-                  const isUpdating = loading.update[task.id]
-                  const isToggling = loading.toggle[task.id]
-                  const disabled =
-                    isDeleting || isUpdating || isToggling || isAnyDeleting
+                  const isDeleting = !!loading.delete[task.id]
+                  const isUpdating = !!loading.update[task.id]
+                  const isToggling = !!loading.toggle[task.id]
+                  // This specific task is busy
+                  const isThisTaskBusy = isDeleting || isUpdating || isToggling
+                  // Disable task if any global loading OR another task is busy
+                  const isDisabled = isAnyLoading && !isThisTaskBusy
 
                   return (
                     <motion.div
@@ -272,10 +272,13 @@ export const DemoComponent = () => {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -10, scale: 0.98 }}
                       transition={{ duration: 0.2, ease: "easeOut" }}
-                      whileTap={{ scale: 0.98 }}
+                      whileTap={{ scale: isThisTaskBusy ? 1 : 0.98 }}
                       className={cn(
                         "group flex h-[50px] flex-1 items-center gap-3 rounded-lg border px-2 py-2 text-sm squircle hover:bg-secondary/40 hover:dark:bg-secondary/20",
-                        { "pointer-events-none animate-pulse": disabled }
+                        {
+                          "pointer-events-none animate-pulse": isThisTaskBusy,
+                          "pointer-events-none opacity-50": isDisabled,
+                        }
                       )}
                     >
                       <AnimatePresence mode="wait" initial={false}>
@@ -285,17 +288,20 @@ export const DemoComponent = () => {
                             initial={{ opacity: 0, y: 5 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -5 }}
-                            className="flex w-full items-center gap-3"
+                            className="flex w-full items-center gap-1"
                           >
                             <Input
                               autoFocus
                               value={editText}
-                              disabled={isUpdating || isAnyDeleting}
+                              disabled={isUpdating || isAnyLoading}
                               onChange={(e) => setEditText(e.target.value)}
                               onKeyDown={(e) =>
-                                e.key === "Enter" && updateTaskContent(task.id)
+                                e.key === "Enter" &&
+                                !isAnyLoading &&
+                                updateTaskContent(task.id)
                               }
                               aria-invalid={editText.length >= maxContentLength}
+                              className="mr-2"
                             />
 
                             <Button
@@ -305,19 +311,19 @@ export const DemoComponent = () => {
                               onClick={() => updateTaskContent(task.id)}
                               disabled={
                                 editText.length >= maxContentLength ||
-                                isAnyDeleting
+                                isAnyLoading
                               }
                             >
-                              <Check className="size-3.5" />
+                              <Check />
                             </Button>
 
                             <Button
                               size="icon-sm"
                               variant="destructive"
-                              disabled={isUpdating || isAnyDeleting}
+                              disabled={isUpdating || isAnyLoading}
                               onClick={() => setEditingId(null)}
                             >
-                              <X className="size-3.5" />
+                              <X />
                             </Button>
                           </motion.div>
                         ) : (
@@ -326,20 +332,22 @@ export const DemoComponent = () => {
                             initial={{ opacity: 0, y: 5 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -5 }}
-                            className="flex w-full items-center gap-3"
+                            className="flex w-full items-center gap-2"
                           >
-                            {isToggling ? (
-                              <Loader className="size-4 animate-spin" />
-                            ) : (
-                              <Checkbox
-                                id={`toggle-${task.id}`}
-                                checked={task.completed}
-                                disabled={disabled}
-                                onCheckedChange={() =>
-                                  toggleTaskComplete(task.id)
-                                }
-                              />
-                            )}
+                            <span className="ml-1">
+                              {isToggling ? (
+                                <Loader className="size-4 animate-spin" />
+                              ) : (
+                                <Checkbox
+                                  id={`toggle-${task.id}`}
+                                  checked={task.completed}
+                                  disabled={isDisabled || isThisTaskBusy}
+                                  onCheckedChange={() =>
+                                    !isAnyLoading && toggleTaskComplete(task.id)
+                                  }
+                                />
+                              )}
+                            </span>
 
                             <label
                               htmlFor={`toggle-${task.id}`}
@@ -358,13 +366,14 @@ export const DemoComponent = () => {
                         <Button
                           size="icon-sm"
                           variant="ghost"
-                          disabled={disabled}
+                          disabled={isDisabled || isThisTaskBusy}
                           onClick={() => {
+                            if (isAnyLoading) return
                             setEditingId(task.id)
                             setEditText(task.content)
                           }}
                         >
-                          <Pencil className="size-3.5" />
+                          <Pencil />
                         </Button>
 
                         <Button
@@ -372,10 +381,12 @@ export const DemoComponent = () => {
                           variant="destructive"
                           isLoading={isDeleting}
                           loadingText=""
-                          disabled={isAnyDeleting && !isDeleting}
-                          onClick={() => removeTask(task.id)}
+                          disabled={
+                            isDisabled || (isThisTaskBusy && !isDeleting)
+                          }
+                          onClick={() => !isAnyLoading && removeTask(task.id)}
                         >
-                          <Trash2 className="size-3.5" />
+                          <Trash2 />
                         </Button>
                       </div>
                     </motion.div>
