@@ -17,18 +17,6 @@ export const config = create({
       },
     },
   },
-  // modalConfig: {
-  //   from: "reown",
-  //   options: {
-  //     projectId: import.meta.env.VITE_WC_PROJECT_ID as string,
-  //     metadata: {
-  //       name: "Trezo",
-  //       description: "",
-  //       icons: [""],
-  //       url: "",
-  //     },
-  //   },
-  // },
 });
 
 export const TrezoProvider = config.Provider;
