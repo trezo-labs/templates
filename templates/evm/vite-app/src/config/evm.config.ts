@@ -1,5 +1,5 @@
-import { create, Chains } from "@trezo/evm"
-import { contractAbi, contractAddress } from "./contract.config"
+import { Chains, create } from "@trezo/evm";
+import { contractAbi, contractAddress } from "./contract.config";
 
 export const config = create({
   address: contractAddress,
@@ -29,7 +29,7 @@ export const config = create({
   //     },
   //   },
   // },
-})
+});
 
-export const TrezoProvider = config.Provider
-export const ConnectButton = config.ConnectButton
+export const TrezoProvider = config.Provider;
+export const ConnectButton = config.ConnectButton;

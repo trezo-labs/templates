@@ -1,4 +1,4 @@
-import { DemoComponent } from "./components/demo-comp"
+import { DemoComponent } from "./components/demo-comp";
 
 function App() {
   return (
@@ -26,7 +26,7 @@ function App() {
         </p>
       </footer>
     </section>
-  )
+  );
 }
 
-export default App
+export default App;
