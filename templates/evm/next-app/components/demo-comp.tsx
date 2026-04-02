@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 import { Input } from "./ui/input"
 import { Checkbox } from "./ui/checkbox"
 import { Button } from "@/components/ui/button"
-import { config, ConnectButton } from "@/config/evm.config"
+import { useConfig, ConnectButton } from "@/config/evm.config"
 import { ScrollArea } from "./ui/scroll-area"
 
 type TaskType = {
@@ -24,7 +24,7 @@ type LoadingState = {
 }
 
 export const DemoComponent = () => {
-  const { web3Provider, call, wallet } = config()
+  const { web3Provider, call, wallet } = useConfig()
 
   const [tasks, setTasks] = useState<TaskType[]>([])
   const [newTask, setNewTask] = useState<string>("")
@@ -274,7 +274,7 @@ export const DemoComponent = () => {
                       transition={{ duration: 0.2, ease: "easeOut" }}
                       whileTap={{ scale: isThisTaskBusy ? 1 : 0.98 }}
                       className={cn(
-                        "group flex h-[50px] flex-1 items-center gap-3 rounded-lg border px-2 py-2 text-sm squircle hover:bg-secondary/40 hover:dark:bg-secondary/20",
+                        "group squircle flex h-[50px] flex-1 items-center gap-3 rounded-lg border px-2 py-2 text-sm hover:bg-secondary/40 hover:dark:bg-secondary/20",
                         {
                           "pointer-events-none animate-pulse": isThisTaskBusy,
                           "pointer-events-none opacity-50": isDisabled,

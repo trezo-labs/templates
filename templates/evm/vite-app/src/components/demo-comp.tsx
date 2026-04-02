@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { Input } from "./ui/input";
 import { Checkbox } from "./ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { config, ConnectButton } from "@/config/evm.config";
+import { useConfig, ConnectButton } from "@/config/evm.config";
 import { ScrollArea } from "./ui/scroll-area";
 
 type TaskType = {
@@ -23,7 +23,7 @@ type LoadingState = {
 };
 
 export const DemoComponent = () => {
-  const { web3Provider, call, wallet } = config();
+  const { web3Provider, call, wallet } = useConfig();
 
   const [tasks, setTasks] = useState<TaskType[]>([]);
   const [newTask, setNewTask] = useState<string>("");

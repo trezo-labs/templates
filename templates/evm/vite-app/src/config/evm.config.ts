@@ -1,7 +1,7 @@
 import { Chains, create } from "@trezo/evm";
 import { contractAbi, contractAddress } from "./contract.config";
 
-export const config = create({
+export const useConfig = create({
   address: contractAddress,
   abi: contractAbi,
   chains: [Chains.optimismSepolia, Chains.optimism, Chains.mainnet],
@@ -19,5 +19,5 @@ export const config = create({
   },
 });
 
-export const TrezoProvider = config.Provider;
-export const ConnectButton = config.ConnectButton;
+export const Provider = useConfig.Provider;
+export const ConnectButton = useConfig.ConnectButton;
