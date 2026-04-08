@@ -54,7 +54,7 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --primary: oklch(67.286% 0.14308 235.413);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -66,20 +66,7 @@
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
 }
 
 .dark {
@@ -89,7 +76,7 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
+  --primary: oklch(61.66% 0.12944 234.773);
   --primary-foreground: oklch(0.205 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
@@ -101,19 +88,6 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
 }
 
 @layer base {
@@ -128,7 +102,27 @@
   }
 }
 
-.squircle {
+@utility squircle {
   corner-shape: squircle;
-  @apply rounded-lg sm:rounded-xl md:rounded-2xl lg:rounded-3xl;
+  @apply rounded-lg sm:rounded-xl md:rounded-2xl lg:rounded-3xl xl:rounded-4xl;
+}
+
+@utility squircle-t {
+  corner-shape: squircle;
+  @apply rounded-t-lg sm:rounded-t-xl md:rounded-t-2xl lg:rounded-t-3xl xl:rounded-t-4xl;
+}
+
+@utility squircle-b {
+  corner-shape: squircle;
+  @apply rounded-b-lg sm:rounded-b-xl md:rounded-b-2xl lg:rounded-b-3xl xl:rounded-b-4xl;
+}
+
+@utility squircle-l {
+  corner-shape: squircle;
+  @apply rounded-l-lg sm:rounded-l-xl md:rounded-l-2xl lg:rounded-l-3xl xl:rounded-l-4xl;
+}
+
+@utility squircle-r {
+  corner-shape: squircle;
+  @apply rounded-r-lg sm:rounded-r-xl md:rounded-r-2xl lg:rounded-r-3xl xl:rounded-r-4xl;
 }

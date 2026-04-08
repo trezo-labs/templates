@@ -1,31 +1,10 @@
-export const contractAddress = "0x238743cdee9b9cd48ada67b8d43cdc3bd413c0d9"
+export const contractAddress = "0x2282170c7148Fc0b8f444Ff1c8B8B4f09D5c2457"
 
 export const contractAbi = [
   {
-    inputs: [
-      {
-        internalType: "string",
-        name: "content",
-        type: "string",
-      },
-    ],
-    name: "addTask",
-    outputs: [],
+    inputs: [],
     stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "id",
-        type: "uint256",
-      },
-    ],
-    name: "removeTask",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
+    type: "constructor",
   },
   {
     anonymous: false,
@@ -33,194 +12,47 @@ export const contractAbi = [
       {
         indexed: true,
         internalType: "address",
-        name: "user",
+        name: "by",
         type: "address",
       },
       {
-        indexed: true,
+        indexed: false,
         internalType: "uint256",
-        name: "taskId",
+        name: "previousCount",
+        type: "uint256",
+      },
+    ],
+    name: "CountReset",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "by",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "amount",
         type: "uint256",
       },
       {
         indexed: false,
-        internalType: "string",
-        name: "content",
-        type: "string",
+        internalType: "uint256",
+        name: "newCount",
+        type: "uint256",
       },
     ],
-    name: "TaskAdded",
+    name: "Incremented",
     type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "address",
-        name: "user",
-        type: "address",
-      },
-      {
-        indexed: true,
-        internalType: "uint256",
-        name: "taskId",
-        type: "uint256",
-      },
-    ],
-    name: "TaskRemoved",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "address",
-        name: "user",
-        type: "address",
-      },
-      {
-        indexed: true,
-        internalType: "uint256",
-        name: "taskId",
-        type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "bool",
-        name: "completed",
-        type: "bool",
-      },
-    ],
-    name: "TaskToggled",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "address",
-        name: "user",
-        type: "address",
-      },
-      {
-        indexed: true,
-        internalType: "uint256",
-        name: "taskId",
-        type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "string",
-        name: "newContent",
-        type: "string",
-      },
-    ],
-    name: "TaskUpdated",
-    type: "event",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "id",
-        type: "uint256",
-      },
-    ],
-    name: "toggleTaskComplete",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "id",
-        type: "uint256",
-      },
-      {
-        internalType: "string",
-        name: "newContent",
-        type: "string",
-      },
-    ],
-    name: "updateTaskContent",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
   },
   {
     inputs: [],
-    name: "fetchAllTasks",
-    outputs: [
-      {
-        components: [
-          {
-            internalType: "uint256",
-            name: "id",
-            type: "uint256",
-          },
-          {
-            internalType: "string",
-            name: "content",
-            type: "string",
-          },
-          {
-            internalType: "bool",
-            name: "completed",
-            type: "bool",
-          },
-        ],
-        internalType: "struct TrezoTodo.Task[]",
-        name: "result",
-        type: "tuple[]",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "id",
-        type: "uint256",
-      },
-    ],
-    name: "getTask",
-    outputs: [
-      {
-        components: [
-          {
-            internalType: "uint256",
-            name: "id",
-            type: "uint256",
-          },
-          {
-            internalType: "string",
-            name: "content",
-            type: "string",
-          },
-          {
-            internalType: "bool",
-            name: "completed",
-            type: "bool",
-          },
-        ],
-        internalType: "struct TrezoTodo.Task",
-        name: "",
-        type: "tuple",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "MAX_CONTENT_LENGTH",
+    name: "MAX_CALLS",
     outputs: [
       {
         internalType: "uint256",
@@ -233,7 +65,7 @@ export const contractAbi = [
   },
   {
     inputs: [],
-    name: "taskCount",
+    name: "MAX_COUNT",
     outputs: [
       {
         internalType: "uint256",
@@ -242,6 +74,110 @@ export const contractAbi = [
       },
     ],
     stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "WINDOW",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    name: "callCount",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "getCount",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "increment",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "amount",
+        type: "uint256",
+      },
+    ],
+    name: "incrementBy",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    name: "lastReset",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "owner",
+    outputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "reset",
+    outputs: [],
+    stateMutability: "nonpayable",
     type: "function",
   },
 ] as const

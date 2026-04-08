@@ -1,402 +1,507 @@
 "use client"
-import { motion, AnimatePresence } from "framer-motion"
-import { useCallback, useEffect, useState } from "react"
-import { Check, Info, Loader, Pencil, Trash2, X } from "lucide-react"
-
-import { cn } from "@/lib/utils"
+import React from "react"
+import { Button } from "./ui/button"
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+  FieldSet,
+} from "./ui/field"
+import { Card, CardContent, CardHeader } from "./ui/card"
 import { Input } from "./ui/input"
-import { Checkbox } from "./ui/checkbox"
-import { Button } from "@/components/ui/button"
-import { useConfig, ConnectButton } from "@/config/evm.config"
-import { ScrollArea } from "./ui/scroll-area"
+import { Separator } from "./ui/separator"
+import { AnimatedNumber } from "./ui/animated-number"
+import { useEffect, useState } from "react"
+import { ConnectButton, useConfig } from "@/config/evm.config"
+import { cn } from "@/lib/utils"
+import { AnimatePresence, motion } from "framer-motion"
+import { Badge } from "./ui/badge"
+import { Kbd } from "./ui/kbd"
 
-type TaskType = {
-  id: number
-  content: string
-  completed: boolean
+type LogType = "error" | "success" | "event" | "info"
+type FormattedLog = {
+  id: string
+  message: string
+  timestamp: string
+  type: LogType
 }
 
-type LoadingState = {
-  add: boolean
-  toggle: Record<number, boolean>
-  update: Record<number, boolean>
-  delete: Record<number, boolean>
+type ExecuteOptions<T = unknown> = {
+  type: "read" | "write"
+  fn: string
+  args?: unknown[]
+  loadingKey?: "increment" | "incrementBy" | "reset"
+  onSuccess?: (data: T) => void
+  successMessage?: string
 }
 
 export const DemoComponent = () => {
-  const { web3Provider, call, wallet } = useConfig()
+  const { call, wallet } = useConfig()
 
-  const [tasks, setTasks] = useState<TaskType[]>([])
-  const [newTask, setNewTask] = useState<string>("")
-  const [editText, setEditText] = useState<string>("")
-  const [maxContentLength, setMaxContentLength] = useState<number>(30)
-  const [editingId, setEditingId] = useState<number | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [value, setValue] = useState<number>(0)
+  const [incrementInput, setIncrementInput] = useState("")
+  const [increment, setIncrement] = useState<number>(0)
 
-  const [loading, setLoading] = useState<LoadingState>({
-    add: false,
-    toggle: {},
-    update: {},
-    delete: {},
-  })
+  const [ownerAddress, setOwnerAddress] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState<
+    "increment" | "incrementBy" | "reset" | null
+  >(null)
+  const [logs, setLogs] = useState<FormattedLog[]>([])
+  const [maxCount, setMaxCount] = useState<number>(0)
 
-  // ===== Derived loading states =====
-  const isAnyLoading =
-    loading.add ||
-    Object.values(loading.toggle).some(Boolean) ||
-    Object.values(loading.update).some(Boolean) ||
-    Object.values(loading.delete).some(Boolean)
+  /* ---------------- EXECUTE ---------------- */
 
-  // ===== Fetch helpers =====
-  const fetchOtherFunctions = useCallback(async () => {
+  async function execute<T = unknown>({
+    type,
+    fn,
+    args = [],
+    loadingKey,
+    onSuccess,
+    successMessage,
+  }: ExecuteOptions<T>) {
+    if (loadingKey) setIsLoading(loadingKey)
+
     try {
-      const mxLgh = await call.queryFn("MAX_CONTENT_LENGTH", [])
-      setMaxContentLength(Number(mxLgh.data))
-    } catch (error) {
-      console.error(error)
-    }
-  }, [call])
+      const res =
+        type === "read"
+          ? await call.queryFn(
+              fn as
+                | "MAX_CALLS"
+                | "MAX_COUNT"
+                | "WINDOW"
+                | "callCount"
+                | "getCount"
+                | "lastReset"
+                | "owner",
+              args as unknown as readonly []
+            )
+          : await call.mutateFn(
+              fn as "increment" | "incrementBy" | "reset",
+              args as unknown as readonly [bigint]
+            )
 
-  const fetchAllTasks = async () => {
-    try {
-      const result = await call.queryFn("fetchAllTasks", [])
-      if (result.error) {
-        throw new Error(result.error.message)
+      if (res.error) {
+        addLog("error", `${res.error.raw}`)
+        console.log(res.error.raw)
+        return
       }
-      setTasks(result.data as unknown as TaskType[])
-    } catch (error) {
-      console.error(error)
+
+      if (successMessage) addLog("success", successMessage)
+
+      onSuccess?.(res.data as T)
+    } catch {
+      addLog("error", "Unexpected error occurred")
+    } finally {
+      if (loadingKey) setIsLoading(null)
     }
   }
 
-  // ===== Actions =====
+  /* ---------------- LOG ---------------- */
 
-  const addTask = async () => {
-    if (!newTask.trim() || !wallet.account.isConnected) return
-
-    setLoading((prev) => ({ ...prev, add: true }))
-    setError(null)
-
-    try {
-      const result = await call.mutateFn("addTask", [newTask.trim()])
-      if (result.error) {
-        console.error(result.error)
-        throw new Error(result.error.message)
-      }
-      if (result.data?.receipt?.status === 0)
-        throw new Error("Transaction failed")
-      setNewTask("")
-    } catch (error) {
-      console.error(error)
-      setError(error instanceof Error ? error.message : "Failed to add task")
-    } finally {
-      setLoading((prev) => ({ ...prev, add: false }))
-    }
-  }
-
-  const toggleTaskComplete = async (id: number) => {
-    if (!wallet.account.isConnected) return
-    setLoading((prev) => ({ ...prev, toggle: { ...prev.toggle, [id]: true } }))
-    setError(null)
-
-    try {
-      const result = await call.mutateFn("toggleTaskComplete", [BigInt(id)])
-      if (result.error) {
-        console.error(result.error)
-        throw new Error(result.error.message)
-      }
-      if (result.data?.receipt?.status === 0)
-        throw new Error("Transaction failed")
-    } catch (error) {
-      console.error(error)
-      setError(error instanceof Error ? error.message : "Failed to toggle task")
-    } finally {
-      setLoading((prev) => ({
+  function addLog(type: LogType, message: string) {
+    setLogs((prev) =>
+      [
+        {
+          id: crypto.randomUUID(),
+          message,
+          timestamp: new Date().toLocaleTimeString(),
+          type,
+        },
         ...prev,
-        toggle: { ...prev.toggle, [id]: false },
-      }))
-    }
+      ].slice(0, 50)
+    )
   }
 
-  const updateTaskContent = async (id: number) => {
-    if (!editText.trim() || !wallet.account.isConnected) return
-    setLoading((prev) => ({ ...prev, update: { ...prev.update, [id]: true } }))
-    setError(null)
+  /* ---------------- DERIVED ---------------- */
 
-    try {
-      const result = await call.mutateFn("updateTaskContent", [
-        BigInt(id),
-        editText.trim(),
-      ])
-      if (result.error) {
-        console.error(result.error)
-        throw new Error(result.error.message)
-      }
-      if (result.data?.receipt?.status === 0)
-        throw new Error("Transaction failed")
-      setEditingId(null)
-      setEditText("")
-    } catch (error) {
-      console.error(error)
-      setError(error instanceof Error ? error.message : "Failed to update task")
-    } finally {
-      setLoading((prev) => ({
-        ...prev,
-        update: { ...prev.update, [id]: false },
-      }))
-    }
+  const remaining = Math.max(0, maxCount - value)
+
+  /* ---------------- ACTIONS ---------------- */
+
+  function handleIncrement() {
+    execute({
+      type: "write",
+      fn: "increment",
+      loadingKey: "increment",
+    })
   }
 
-  const removeTask = async (id: number) => {
-    if (!wallet.account.isConnected) return
-    setLoading((prev) => ({ ...prev, delete: { ...prev.delete, [id]: true } }))
-    setError(null)
+  function handleIncrementBy(e?: React.FormEvent) {
+    e?.preventDefault()
 
-    try {
-      const result = await call.mutateFn("removeTask", [BigInt(id)])
-      if (result.error) {
-        console.error(result.error)
-        throw new Error(result.error.message)
-      }
-      if (result.data?.receipt?.status === 0)
-        throw new Error("Transaction failed")
-    } catch (error) {
-      console.error(error)
-      setError(error instanceof Error ? error.message : "Failed to remove task")
-    } finally {
-      setLoading((prev) => ({
-        ...prev,
-        delete: { ...prev.delete, [id]: false },
-      }))
-    }
+    execute({
+      type: "write",
+      fn: "incrementBy",
+      args: [BigInt(increment)],
+      loadingKey: "incrementBy",
+      onSuccess: () => {
+        setIncrementInput("")
+        setIncrement(0)
+      },
+    })
   }
 
-  // ===== Effects =====
+  function handleReset() {
+    execute({
+      type: "write",
+      fn: "reset",
+      loadingKey: "reset",
+    })
+  }
+
+  /* ---------------- INPUT VALIDATION ---------------- */
 
   useEffect(() => {
-    // Don't fetch if wallet is still reconnecting
-    if (wallet.account.isConnecting) return
+    const timer = setTimeout(() => {
+      const parsed = Number(incrementInput)
+      if (isNaN(parsed)) return
 
-    queueMicrotask(() => {
-      fetchAllTasks()
-      fetchOtherFunctions()
+      if (parsed <= 0) {
+        setIncrement(0)
+        return
+      }
+
+      if (parsed > remaining) {
+        setIncrement(remaining)
+        return
+      }
+
+      setIncrement(parsed)
+    }, 100)
+
+    return () => clearTimeout(timer)
+  }, [incrementInput, remaining])
+
+  /* ---------------- FETCH ---------------- */
+
+  function fetchAll() {
+    execute<bigint>({
+      type: "read",
+      fn: "getCount",
+      onSuccess: (d) => setValue(Number(d)),
     })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wallet.account.address, wallet.account.isConnecting])
+
+    execute<string>({
+      type: "read",
+      fn: "owner",
+      onSuccess: setOwnerAddress,
+    })
+
+    execute<bigint>({
+      type: "read",
+      fn: "MAX_COUNT",
+      onSuccess: (d) => setMaxCount(Number(d)),
+    })
+  }
 
   useEffect(() => {
-    const cleanup = call.listenFn({
-      add: { eventName: "TaskAdded", listener: fetchAllTasks },
-      update: { eventName: "TaskUpdated", listener: fetchAllTasks },
-      remove: { eventName: "TaskRemoved", listener: fetchAllTasks },
-      toggle: { eventName: "TaskToggled", listener: fetchAllTasks },
+    fetchAll()
+  }, [])
+
+  /* ---------------- EVENTS ---------------- */
+
+  useEffect(() => {
+    const short = (a: string) => `${a.slice(0, 6)}...${a.slice(-4)}`
+
+    const offReset = call.listenFn("CountReset", (caller, prev) => {
+      addLog(
+        "event",
+        `${short(caller)} reset (${Number(prev).toLocaleString()})`
+      )
+      setValue(0)
     })
 
-    return cleanup
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wallet.account.address]) // 👈 stable primitive, never changes size
+    const offInc = call.listenFn("Incremented", (caller, amt, next) => {
+      addLog(
+        "success",
+        `${short(caller)} +${Number(amt).toLocaleString()} → ${Number(next).toLocaleString()}`
+      )
+      setValue(Number(next))
+    })
 
-  // ===== UI =====
+    return () => {
+      offReset()
+      offInc()
+    }
+  }, [])
+
+  /* ---------------- UI ---------------- */
 
   return (
-    <div className="space-y-2">
-      <ConnectButton>
-        {({ isConnected, truncatedAddress, open, isConnecting }) => (
-          <Button
-            onClick={() => open()}
-            isLoading={!isConnected ? isConnecting : false}
-            loadingText="Please wait..."
+    <React.Fragment>
+      <header className="sticky top-0 left-0 z-50 flex w-full flex-col gap-6 px-6 py-8 backdrop-blur-2xl">
+        <nav className="mx-auto flex size-full w-full max-w-7xl items-center justify-between">
+          <a
+            href="https://trezosite.vercel.app"
+            target="_blank"
+            className="flex items-center gap-3"
           >
-            {isConnected ? truncatedAddress : "Connect"}
-          </Button>
-        )}
-      </ConnectButton>
-      <div
-        className={cn("pointer-events-auto space-y-2", {
-          "pointer-events-none opacity-50": !wallet.account.isConnected,
-          "pointer-events-none animate-pulse": wallet.account.isConnecting,
-        })}
-      >
-        {/* ===== Add Task ===== */}
-        <div className="flex flex-col gap-1">
-          <div className="flex gap-2">
-            <Input
-              value={newTask}
-              disabled={!web3Provider.isAvailable || isAnyLoading}
-              onChange={(e) => setNewTask(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && !isAnyLoading && addTask()}
-              aria-invalid={newTask.length >= maxContentLength}
-            />
+            <p className="text-xs font-medium uppercase">[ Trezo Demo ]</p>
+            <Badge>@trezo/evm</Badge>
+          </a>
 
-            <Button
-              onClick={addTask}
-              isLoading={loading.add}
-              loadingText="Adding..."
-              disabled={
-                !web3Provider.isAvailable ||
-                isAnyLoading ||
-                newTask.length >= maxContentLength
-              }
-            >
-              Add Task
-            </Button>
+          <ConnectButton>
+            {(props) => {
+              const isLoading = !props.isConnected && props.isConnecting
+
+              return (
+                <Button
+                  isLoading={isLoading}
+                  loadingText="Connecting..."
+                  onClick={() => props.open()}
+                >
+                  {props.isConnected ? props.truncatedAddress : "Connect"}
+                </Button>
+              )
+            }}
+          </ConnectButton>
+        </nav>
+
+        <section className="mx-auto flex w-full max-w-5xl flex-wrap justify-between gap-2">
+          <a
+            href="https://console.optimism.io/faucet"
+            target="_blank"
+            className="text-xs font-medium text-muted-foreground uppercase transition-colors hover:text-foreground hover:underline"
+          >
+            [ Click to get test tokens ]
+          </a>
+
+          <p className="text-xs font-medium text-muted-foreground uppercase">
+            [ Toggle theme with letter <Kbd className="text-[10px]">t</Kbd> key
+            ]
+          </p>
+        </section>
+      </header>
+
+      <main className="mx-auto grid w-full max-w-4xl gap-16 px-6 py-10 md:grid-cols-2 md:gap-4">
+        <div className="flex h-max flex-col justify-between gap-4 md:sticky md:top-40 md:max-h-[630px]">
+          {/* Count */}
+          <Card className="h-max bg-background! md:mt-4">
+            <CardHeader>
+              <div className="-mt-10 w-max bg-background md:-mt-12">
+                <AnimatedNumber
+                  className="origin-bottom-left text-4xl font-medium md:text-5xl"
+                  value={value}
+                />
+              </div>
+            </CardHeader>
+          </Card>
+
+          {/* Increment */}
+          <Card>
+            <CardHeader>
+              <form onSubmit={handleIncrementBy}>
+                <FieldGroup>
+                  <FieldSet>
+                    <Field>
+                      <FieldLabel htmlFor="increment">
+                        Increment Count
+                      </FieldLabel>
+
+                      <div className="flex items-center gap-2">
+                        <Input
+                          id="increment"
+                          type="number"
+                          value={incrementInput}
+                          onChange={(e) => setIncrementInput(e.target.value)}
+                          placeholder="Enter amount"
+                          min={0}
+                          disabled={
+                            !wallet.account.isConnected ||
+                            isLoading === "incrementBy"
+                          }
+                        />
+
+                        <Button
+                          variant="outline"
+                          type="submit"
+                          isLoading={isLoading === "incrementBy"}
+                          disabled={!wallet.account.isConnected}
+                        >
+                          <span>Increment</span>
+                        </Button>
+
+                        <Separator
+                          orientation="vertical"
+                          className="mx-2 mt-1.5! h-5"
+                        />
+
+                        <Button
+                          type="button"
+                          isLoading={isLoading === "increment"}
+                          disabled={!wallet.account.isConnected}
+                          onClick={handleIncrement}
+                        >
+                          <span>+ 1</span>
+                        </Button>
+                      </div>
+
+                      {!wallet.account.isConnected && (
+                        <FieldDescription>
+                          Connect wallet to perform transactions
+                        </FieldDescription>
+                      )}
+                    </Field>
+                  </FieldSet>
+                </FieldGroup>
+              </form>
+            </CardHeader>
+          </Card>
+
+          {/* Code note */}
+          <Card className="py-4!">
+            <CardHeader>
+              <div className="flex flex-col gap-1.5">
+                <p className="mb-2 font-medium text-foreground">
+                  How this works
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  <code className="text-primary">
+                    <a
+                      target="_blank"
+                      className="text-primary hover:underline"
+                      href="https://trezosite.vercel.app/docs/packages/evm#read-from-contract-queryfn"
+                    >
+                      call.queryFn
+                    </a>
+                  </code>{" "}
+                  reads <strong className="text-foreground">getCount</strong>{" "}
+                  and <strong className="text-foreground">owner</strong>
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  <code className="text-primary">
+                    <a
+                      target="_blank"
+                      className="text-primary hover:underline"
+                      href="https://trezosite.vercel.app/docs/packages/evm#write-to-contract-mutatefn"
+                    >
+                      call.mutateFn
+                    </a>
+                  </code>{" "}
+                  pre-sims before opening MetaMask
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  <code className="text-primary">
+                    <a
+                      target="_blank"
+                      className="text-primary hover:underline"
+                      href="https://trezosite.vercel.app/docs/packages/evm#listen-to-events-listenfn"
+                    >
+                      call.listenFn
+                    </a>
+                  </code>{" "}
+                  streams{" "}
+                  <strong className="text-foreground">Incremented</strong> and{" "}
+                  <strong className="text-foreground">CountReset</strong> events
+                  live
+                </p>
+              </div>
+            </CardHeader>
+          </Card>
+
+          <div className="flex items-center gap-6">
+            <Separator className="flex-1" />
+            <span className="text-sm text-muted-foreground">
+              Contract Owner
+            </span>
+            <Separator className="flex-1" />
           </div>
 
-          {error && (
-            <div className="flex items-center gap-1.5 text-xs text-destructive">
-              <Info size={14} />
-              {error}
-            </div>
-          )}
+          {/* Owner */}
+          <Card className="py-4!">
+            <CardHeader>
+              <p className="truncate text-sm text-foreground">
+                <span>{ownerAddress ?? "0x.."}</span>
+              </p>
+            </CardHeader>
+          </Card>
+
+          {/* Reset counter */}
+          <Card className="py-4!">
+            <CardHeader>
+              <Button
+                size="lg"
+                variant="destructive"
+                onClick={handleReset}
+                disabled={!wallet.account.isConnected}
+                isLoading={isLoading === "reset"}
+                loadingText="Resetting, please wait..."
+              >
+                <span>Reset counter (owner only)</span>
+              </Button>
+            </CardHeader>
+          </Card>
         </div>
 
-        {/* ===== Task List ===== */}
-        {tasks.length > 0 && (
-          <ScrollArea className="max-h-[350px] overflow-y-auto">
-            <AnimatePresence initial={false}>
-              <motion.div layout className="flex flex-col gap-2">
-                {tasks.map((task) => {
-                  const isDeleting = !!loading.delete[task.id]
-                  const isUpdating = !!loading.update[task.id]
-                  const isToggling = !!loading.toggle[task.id]
-                  // This specific task is busy
-                  const isThisTaskBusy = isDeleting || isUpdating || isToggling
-                  // Disable task if any global loading OR another task is busy
-                  const isDisabled = isAnyLoading && !isThisTaskBusy
-
-                  return (
+        <Card className="max-h-[532px] flex-1">
+          <CardContent className="h-full overflow-y-auto">
+            <motion.div
+              layout
+              transition={{
+                layout: { type: "spring", stiffness: 260, damping: 25 },
+              }}
+              className="flex flex-col gap-[7px] font-mono"
+            >
+              <AnimatePresence initial={false}>
+                {logs.length === 0 ? (
+                  <motion.p
+                    layout
+                    transition={{
+                      layout: { type: "spring", stiffness: 260, damping: 25 },
+                    }}
+                    className="text-xs font-medium text-muted-foreground uppercase"
+                  >
+                    [ Events and results will appear here... ]
+                  </motion.p>
+                ) : (
+                  logs.map((entry) => (
                     <motion.div
-                      key={task.id}
-                      layout
-                      initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                      key={entry.id}
+                      layout="position"
+                      initial={{ opacity: 0, y: -10, scale: 0.98 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -10, scale: 0.98 }}
-                      transition={{ duration: 0.2, ease: "easeOut" }}
-                      whileTap={{ scale: isThisTaskBusy ? 1 : 0.98 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.98 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 25,
+                      }}
                       className={cn(
-                        "group squircle flex h-[50px] flex-1 items-center gap-3 rounded-lg border px-2 py-2 text-sm hover:bg-secondary/40 hover:dark:bg-secondary/20",
+                        "flex gap-3 rounded-sm border-l-2 px-3 py-2",
                         {
-                          "pointer-events-none animate-pulse": isThisTaskBusy,
-                          "pointer-events-none opacity-50": isDisabled,
+                          "border-destructive bg-[rgba(248,113,113,0.08)]":
+                            entry.type === "error",
+                          "border-green-500 bg-[rgba(74,222,128,0.08)]":
+                            entry.type === "success",
+                          "border-violet-500 bg-[rgba(124,111,247,0.08)]":
+                            entry.type === "event",
+                          "border-foreground bg-secondary":
+                            entry.type === "info",
                         }
                       )}
                     >
-                      <AnimatePresence mode="wait" initial={false}>
-                        {editingId === task.id ? (
-                          <motion.div
-                            key={`edit-${task.id}`}
-                            initial={{ opacity: 0, y: 5 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -5 }}
-                            className="flex w-full items-center gap-1"
-                          >
-                            <Input
-                              autoFocus
-                              value={editText}
-                              disabled={isUpdating || isAnyLoading}
-                              onChange={(e) => setEditText(e.target.value)}
-                              onKeyDown={(e) =>
-                                e.key === "Enter" &&
-                                !isAnyLoading &&
-                                updateTaskContent(task.id)
-                              }
-                              aria-invalid={editText.length >= maxContentLength}
-                              className="mr-2"
-                            />
-
-                            <Button
-                              size="icon-sm"
-                              variant="ghost"
-                              isLoading={isUpdating}
-                              onClick={() => updateTaskContent(task.id)}
-                              disabled={
-                                editText.length >= maxContentLength ||
-                                isAnyLoading
-                              }
-                            >
-                              <Check />
-                            </Button>
-
-                            <Button
-                              size="icon-sm"
-                              variant="destructive"
-                              disabled={isUpdating || isAnyLoading}
-                              onClick={() => setEditingId(null)}
-                            >
-                              <X />
-                            </Button>
-                          </motion.div>
-                        ) : (
-                          <motion.div
-                            key={`view-${task.id}`}
-                            initial={{ opacity: 0, y: 5 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -5 }}
-                            className="flex w-full items-center gap-2"
-                          >
-                            <span className="ml-1">
-                              {isToggling ? (
-                                <Loader className="size-4 animate-spin" />
-                              ) : (
-                                <Checkbox
-                                  id={`toggle-${task.id}`}
-                                  checked={task.completed}
-                                  disabled={isDisabled || isThisTaskBusy}
-                                  onCheckedChange={() =>
-                                    !isAnyLoading && toggleTaskComplete(task.id)
-                                  }
-                                />
-                              )}
-                            </span>
-
-                            <label
-                              htmlFor={`toggle-${task.id}`}
-                              className={cn(
-                                task.completed &&
-                                  "text-muted-foreground line-through"
-                              )}
-                            >
-                              {task.content}
-                            </label>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-
-                      <div className="ml-auto flex gap-1">
-                        <Button
-                          size="icon-sm"
-                          variant="ghost"
-                          disabled={isDisabled || isThisTaskBusy}
-                          onClick={() => {
-                            if (isAnyLoading) return
-                            setEditingId(task.id)
-                            setEditText(task.content)
-                          }}
-                        >
-                          <Pencil />
-                        </Button>
-
-                        <Button
-                          size="icon-sm"
-                          variant="destructive"
-                          isLoading={isDeleting}
-                          loadingText=""
-                          disabled={
-                            isDisabled || (isThisTaskBusy && !isDeleting)
-                          }
-                          onClick={() => !isAnyLoading && removeTask(task.id)}
-                        >
-                          <Trash2 />
-                        </Button>
-                      </div>
+                      <span className="mt-px text-[11px] text-muted-foreground">
+                        {entry.timestamp}
+                      </span>
+                      <span
+                        className={cn("text-xs break-all", {
+                          "text-destructive": entry.type === "error",
+                          "text-green-500": entry.type === "success",
+                          "text-violet-500": entry.type === "event",
+                          "text-foreground": entry.type === "info",
+                        })}
+                      >
+                        {entry.message}
+                      </span>
                     </motion.div>
-                  )
-                })}
-              </motion.div>
-            </AnimatePresence>
-          </ScrollArea>
-        )}
-      </div>
-    </div>
+                  ))
+                )}
+              </AnimatePresence>
+            </motion.div>
+          </CardContent>
+        </Card>
+      </main>
+    </React.Fragment>
   )
 }
