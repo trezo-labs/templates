@@ -18,3 +18,5 @@ export const evmConfig = create({
     },
   },
 })
+
+export const { useConfig } = evmConfig

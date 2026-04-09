@@ -1,17 +1,17 @@
-import React from "react";
-import { Button } from "./ui/button";
-import { Field, FieldGroup, FieldLabel, FieldSet } from "./ui/field";
-import { Card, CardContent, CardHeader } from "./ui/card";
-import { Input } from "./ui/input";
-import { Separator } from "./ui/separator";
-import { AnimatedNumber } from "./ui/animated-number";
-import { useEffect, useState } from "react";
-import { ConnectButton, useConfig } from "@trezo/evm/react";
-import { cn } from "@/lib/utils";
+import { ConnectButton } from "@trezo/evm/react";
+import React, { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Badge } from "./ui/badge";
+
 import { Kbd } from "./ui/kbd";
-import type { contractAbi } from "@/config/contract.config";
+import { cn } from "@/lib/utils";
+import { Badge } from "./ui/badge";
+import { Input } from "./ui/input";
+import { Button } from "./ui/button";
+import { Separator } from "./ui/separator";
+import { useConfig } from "@/config/evm.config";
+import { AnimatedNumber } from "./ui/animated-number";
+import { Card, CardContent, CardHeader } from "./ui/card";
+import { Field, FieldGroup, FieldLabel, FieldSet } from "./ui/field";
 
 type LogType = "error" | "success" | "event" | "info";
 type FormattedLog = {
@@ -31,7 +31,7 @@ type ExecuteOptions<T = unknown> = {
 };
 
 export const DemoComponent = () => {
-  const { call, wallet } = useConfig<typeof contractAbi>();
+  const { call, wallet } = useConfig();
 
   const [value, setValue] = useState<number>(0);
   const [incrementInput, setIncrementInput] = useState("");
