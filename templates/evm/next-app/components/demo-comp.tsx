@@ -13,11 +13,12 @@ import { Input } from "./ui/input"
 import { Separator } from "./ui/separator"
 import { AnimatedNumber } from "./ui/animated-number"
 import { useEffect, useState } from "react"
-import { ConnectButton, useConfig } from "@/config/evm.config"
+import { ConnectButton, useConfig } from "@trezo/evm/react"
 import { cn } from "@/lib/utils"
 import { AnimatePresence, motion } from "framer-motion"
 import { Badge } from "./ui/badge"
 import { Kbd } from "./ui/kbd"
+import { contractAbi } from "@/config/contract.config"
 
 type LogType = "error" | "success" | "event" | "info"
 type FormattedLog = {
@@ -37,7 +38,7 @@ type ExecuteOptions<T = unknown> = {
 }
 
 export const DemoComponent = () => {
-  const { call, wallet } = useConfig()
+  const { call, wallet } = useConfig<typeof contractAbi>()
 
   const [value, setValue] = useState<number>(0)
   const [incrementInput, setIncrementInput] = useState("")
@@ -268,7 +269,7 @@ export const DemoComponent = () => {
           </a>
 
           <p className="text-xs font-medium text-muted-foreground uppercase">
-            [ Toggle theme with letter <Kbd className="text-[10px]">t</Kbd> key
+            [ Toggle theme with letter <Kbd className="text-[10px]">d</Kbd> key
             ]
           </p>
         </section>

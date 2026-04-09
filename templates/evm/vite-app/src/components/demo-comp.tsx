@@ -1,22 +1,17 @@
 import React from "react";
 import { Button } from "./ui/button";
-import {
-  Field,
-  FieldDescription,
-  FieldGroup,
-  FieldLabel,
-  FieldSet,
-} from "./ui/field";
+import { Field, FieldGroup, FieldLabel, FieldSet } from "./ui/field";
 import { Card, CardContent, CardHeader } from "./ui/card";
 import { Input } from "./ui/input";
 import { Separator } from "./ui/separator";
 import { AnimatedNumber } from "./ui/animated-number";
 import { useEffect, useState } from "react";
-import { ConnectButton, useConfig } from "@/config/evm.config";
+import { ConnectButton, useConfig } from "@trezo/evm/react";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { Badge } from "./ui/badge";
 import { Kbd } from "./ui/kbd";
+import type { contractAbi } from "@/config/contract.config";
 
 type LogType = "error" | "success" | "event" | "info";
 type FormattedLog = {
@@ -36,7 +31,7 @@ type ExecuteOptions<T = unknown> = {
 };
 
 export const DemoComponent = () => {
-  const { call, wallet } = useConfig();
+  const { call, wallet } = useConfig<typeof contractAbi>();
 
   const [value, setValue] = useState<number>(0);
   const [incrementInput, setIncrementInput] = useState("");
@@ -335,12 +330,6 @@ export const DemoComponent = () => {
                           <span>+ 1</span>
                         </Button>
                       </div>
-
-                      {!wallet.account.isConnected && (
-                        <FieldDescription>
-                          Connect wallet to perform transactions
-                        </FieldDescription>
-                      )}
                     </Field>
                   </FieldSet>
                 </FieldGroup>

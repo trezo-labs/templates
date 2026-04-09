@@ -1,14 +1,14 @@
 import { Chains, create } from "@trezo/evm"
 import { contractAbi, contractAddress } from "./contract.config"
 
-export const useConfig = create({
+export const evmConfig = create({
   address: contractAddress,
   abi: contractAbi,
   chains: [Chains.optimismSepolia, Chains.optimism],
   rpcUrls: {
     11155420: "https://optimism-sepolia-public.nodies.app", // optimismSepolia chainId
   },
-  modalConfig: {
+  wallet: {
     from: "family",
     options: {
       projectId: process.env.NEXT_APP_WC_PROJECT_ID as string,
@@ -18,6 +18,3 @@ export const useConfig = create({
     },
   },
 })
-
-export const TrezoProvider = useConfig.Provider
-export const ConnectButton = useConfig.ConnectButton

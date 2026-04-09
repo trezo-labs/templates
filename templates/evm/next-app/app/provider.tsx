@@ -1,6 +1,8 @@
 "use client"
+import { Provider as TrezoProvider } from "@trezo/evm/react"
+
+import { evmConfig } from "@/config/evm.config"
 import { ThemeProvider } from "@/components/theme-provider"
-import { TrezoProvider } from "@/config/evm.config"
 
 export default function Provider({
   children,
@@ -9,7 +11,7 @@ export default function Provider({
 }>) {
   return (
     <ThemeProvider>
-      <TrezoProvider>{children}</TrezoProvider>
+      <TrezoProvider config={evmConfig}>{children}</TrezoProvider>
     </ThemeProvider>
   )
 }
